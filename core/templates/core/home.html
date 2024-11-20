@@ -1,0 +1,94 @@
+{% extends "base_generic.html" %} {% block content %}
+<div class="chat-container">
+  <h2>Product Assistant</h2>
+  <div id="chat-messages" class="chat-messages">
+    <div class="welcome-message">
+      Hello! I'm here to help you find the perfect product. What can I assist
+      you with today?
+    </div>
+  </div>
+
+  <form id="chat-form" class="chat-input-form">
+    {% csrf_token %}
+    <input
+      type="text"
+      id="user-input"
+      name="message"
+      placeholder="Type your message..."
+      required
+    />
+    <button type="submit">Send</button>
+  </form>
+</div>
+
+<script>
+  document.getElementById("chat-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const userInput = document.getElementById("user-input");
+    const message = userInput.value;
+    const csrfToken = document.querySelector(
+      "[name=csrfmiddlewaretoken]"
+    ).value;
+
+    // Display user message
+    appendMessage("user", message);
+
+    // Send message to server
+    fetch("/home/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken,
+      },
+      body: JSON.stringify({
+        message: message,
+        // You can add more context or metadata here if needed
+        context: {
+          timestamp: new Date().toISOString(),
+        },
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        // Display bot response
+        appendMessage("bot", data.reply);
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        appendMessage(
+          "bot",
+          "Sorry, I encountered an error. Please try again."
+        );
+      });
+
+    // Clear input
+    userInput.value = "";
+  });
+
+  function appendMessage(sender, message) {
+    const chatMessages = document.getElementById("chat-messages");
+    const messageElement = document.createElement("div");
+
+    messageElement.classList.add("message", `${sender}-message`);
+
+    const messageContent = document.createElement("div");
+    messageContent.classList.add("message-content");
+    messageContent.textContent = message;
+
+    const timestamp = document.createElement("div");
+    timestamp.classList.add("message-timestamp");
+    timestamp.textContent = new Date().toLocaleTimeString();
+
+    messageElement.appendChild(messageContent);
+    messageElement.appendChild(timestamp);
+
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+</script>
+{% endblock %}
