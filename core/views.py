@@ -37,7 +37,7 @@ def home_view(request):
         try:
             data = json.loads(request.body)
             message = data.get("message")
-            topic = ai.identify_topic(message)
+            topic = ai.identify_topic(message, request.user)
             print("SELECTED TOPIC IS - " + topic)
             relevant_data = vector_search(topic)
             if len(relevant_data):

@@ -3,6 +3,11 @@ import threading
 import google.generativeai as genai
 from django.conf import settings
 import logging
+from .models import Cart
+from django.shortcuts import get_object_or_404
+
+# Cart,created = Cart.objects.get_or_create(user = req.user , other params)
+# cart.products.add()
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +18,7 @@ class GeminiClient:
     _initialized = False
     _chat = None
     cart = []
+    user = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -25,7 +31,6 @@ class GeminiClient:
         if self._initialized:
             return
         api_key = "AIzaSyCadPuPUQvtH-NsETbzmgooO9OT2NkAt1s"
-
         if not api_key:
             raise ValueError(
                 "Gemini API key not found in settings or environment variables"
@@ -47,18 +52,21 @@ class GeminiClient:
             self._chat = self.model.start_chat(enable_automatic_function_calling=True)
         return self._chat
 
-    def add_to_cart(self, product_id: int, quantity: int) -> str:
-        """Add item to cart using product_id and the quantity."""
-        self.cart.append({"product_id": product_id, "quantity": quantity})
-        print(f"Cart updated: {self.cart}")
-        return "product has been added to cart"
+    def add_to_cart(self, product_id: int) -> str:
+        """Add item to cart using product_id"""
+        cart_item, created = Cart.objects.get_or_create(
+            user=self.user, product_id=product_id
+        )
+        return "item has been added to the cart"
 
     def check_cart(self) -> str:
         """Check the items in the current cart"""
-        print("cart checked" + str(self.cart))
-        return str(self.cart)
+        print(Cart.objects.all())
+        return str(Cart.objects.all())
 
-    def identify_topic(self, query: str) -> str:
+    def identify_topic(self, query: str, user: object) -> str:
+        if self.user is None:
+            self.user = user
         try:
             prompt = (
                 "From the query I am providing to you I want you to identify the type/category of products that I require. "
@@ -92,13 +100,14 @@ class GeminiClient:
                 "when you see that you have to add something to the cart make sure to call the add_to_cart function"
                 "when you see that you have to get details from the cart make sure to call the check_cart function"
                 "you have been provided with the necesary tools for each of the operations"
-                "look at the query string and extract the relevant product ids and quantity from the provided Passage...and execute the function using that data"
+                "look at the query string and extract the relevant product ids from the provided passage...and execute the function using that data"
                 "make sure the operations happens on valid data"
                 "be very careful while extracting the data from the query"
                 "confirm with the user if you aren't sure about which operation to carry out or you arent sure about the data to be added/removed"
                 "look at the chat history giving more importance to the latest messages while making decisions as well"
                 "it is essential that an operation on cart is carried out when this prompt is called. "
                 "request confirmation but always perform an operation."
+                "dont worry about quantity right now....just add the product id"
                 f"\n\nQUERY : '{query}' \n\n"
                 f"PASSAGE : '{relevant_passage}'\n\n"
             )
