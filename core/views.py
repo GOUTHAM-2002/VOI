@@ -33,7 +33,16 @@ class CustomLoginView(LoginView):
 
 
 def home_view(request):
-    cart = Cart.objects.all()
+    cart_items = Cart.objects.filter(user=request.user).select_related("product")
+
+    cart_dict = {
+        str(item.id): {
+            "Name": item.product.name,
+            "Price": str(item.product.price),
+        }
+        for item in cart_items
+    }
+
     global confirmed_relevant_data
     if request.method == "POST":
         try:
@@ -51,4 +60,4 @@ def home_view(request):
             return JsonResponse({"reply": str(response[0]), "images": response[1]})
         except Exception as e:
             print(e)
-    return render(request, "core/home.html", {"cart": cart})
+    return render(request, "core/home.html", {"cart": json.dumps(cart_dict)})

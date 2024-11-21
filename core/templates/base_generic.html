@@ -1,16 +1,26 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>VOI</title>
-</head>
-<body>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Enable dark mode
+      tailwind.config = {
+        darkMode: "class",
+      };
+    </script>
+  </head>
+
+  <body>
     {% if user.is_authenticated %}
-        <p>Welcome, {{ user.email }}! <a href="{% url 'logout' %}">Logout</a></p>
+    <p>Welcome, {{ user.email }}! <a href="{% url 'logout' %}">Logout</a></p>
     {% else %}
-        <p><a href="{% url 'login' %}">Login</a> | <a href="{% url 'signup' %}">Signup</a></p>
+    <p>
+      <a href="{% url 'login' %}">Login</a> |
+      <a href="{% url 'signup' %}">Signup</a>
+    </p>
     {% endif %}
-    <hr>
-    {% block content %}
-    {% endblock %}
-</body>
+    <hr />
+    {% block content %} {% endblock %}
+  </body>
 </html>
