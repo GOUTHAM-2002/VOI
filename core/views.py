@@ -4,6 +4,7 @@ from django.contrib.auth.views import LoginView
 from .forms import UserSignupForm, UserLoginForm
 from django.http import JsonResponse
 from .vector_db import vector_search
+from .models import Cart
 from .ai_model import GeminiClient
 import json
 
@@ -32,6 +33,7 @@ class CustomLoginView(LoginView):
 
 
 def home_view(request):
+    cart = Cart.objects.all()
     global confirmed_relevant_data
     if request.method == "POST":
         try:
@@ -49,4 +51,4 @@ def home_view(request):
             return JsonResponse({"reply": str(response[0]), "images": response[1]})
         except Exception as e:
             print(e)
-    return render(request, "core/home.html")
+    return render(request, "core/home.html", {"cart": cart})
