@@ -46,7 +46,7 @@ def home_view(request):
             response = ai.get_sales_chat_reply(
                 relevant_passage=str(confirmed_relevant_data), query=message
             )
-            return JsonResponse({"reply": str(response)})
+            return JsonResponse({"reply": str(response[0]), "images": response[1]})
         except Exception as e:
             print(e)
     return render(request, "core/home.html")
