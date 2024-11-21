@@ -5,6 +5,7 @@ from django.conf import settings
 import logging
 from .models import Cart
 from django.shortcuts import get_object_or_404
+import base64
 
 # Cart,created = Cart.objects.get_or_create(user = req.user , other params)
 # cart.products.add()
@@ -39,7 +40,8 @@ class GeminiClient:
 
         try:
             self.model = genai.GenerativeModel(
-                model_name="gemini-pro", tools=[self.add_to_cart, self.check_cart]
+                model_name="gemini-pro",
+                tools=[self.add_to_cart, self.check_cart, self.remove_from_cart],
             )
             self._initialized = True
         except Exception as e:
@@ -57,12 +59,38 @@ class GeminiClient:
         cart_item, created = Cart.objects.get_or_create(
             user=self.user, product_id=product_id
         )
+        print(cart_item)
         return "item has been added to the cart"
 
-    def check_cart(self) -> str:
-        """Check the items in the current cart"""
-        print(Cart.objects.all())
-        return str(Cart.objects.all())
+    def check_cart(self) -> list:
+        cart_items = Cart.objects.filter(user=self.user)
+        cart_products = []
+        for cart_item in cart_items:
+            product = cart_item.product
+            product_details = {
+                "id": product.id,
+                "name": product.name,
+                "description": product.description,
+                "price": float(product.price),
+                "images": {
+                    "image1": product.image1.path if product.image1 else None,
+                    "image2": product.image2.path if product.image2 else None,
+                    "image3": product.image3.path if product.image3 else None,
+                },
+            }
+            cart_products.append(product_details)
+
+        return str(cart_products)
+
+    def remove_from_cart(self, product_id: int) -> str:
+        """Remove item from cart using product_id"""
+        try:
+            # Find and delete the cart item for the specific user and product
+            cart_item = Cart.objects.get(user=self.user, product_id=product_id)
+            cart_item.delete()
+            return "Item has been removed from the cart"
+        except Cart.DoesNotExist:
+            return "Item not found in cart"
 
     def identify_topic(self, query: str, user: object) -> str:
         if self.user is None:
@@ -96,10 +124,11 @@ class GeminiClient:
         print(query)
         if any(word in query.lower() for word in cart_hot_words):
             prompt = (
-                "You need to perform one of the operations on the cart......either adding......removing.......or checking the products in the cart"
-                "when you see that you have to add something to the cart make sure to call the add_to_cart function"
-                "when you see that you have to get details from the cart make sure to call the check_cart function"
-                "you have been provided with the necesary tools for each of the operations"
+                "You need to perform one of the operations on the cart......either adding......removing.......or checking the products in the cart. "
+                + "When you see that you have to add something to the cart make sure to call the add_to_cart function. "
+                + "When you see that you have to get details from the cart make sure to call the check_cart function. "
+                + "When you see that you have to remove something from the cart make sure to call the remove_from_cart function. "
+                + "you have been provided with the necesary tools for each of the operations"
                 "look at the query string and extract the relevant product ids from the provided passage...and execute the function using that data"
                 "make sure the operations happens on valid data"
                 "be very careful while extracting the data from the query"
