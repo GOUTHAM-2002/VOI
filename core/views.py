@@ -4,6 +4,7 @@ from django.contrib.auth.views import LoginView
 from .forms import UserSignupForm, UserLoginForm
 from django.http import JsonResponse
 from .vector_db import vector_search
+from .models import Cart
 from .ai_model import GeminiClient
 import json
 
@@ -32,12 +33,22 @@ class CustomLoginView(LoginView):
 
 
 def home_view(request):
+    cart_items = Cart.objects.filter(user=request.user).select_related("product")
+
+    cart_dict = {
+        str(item.id): {
+            "Name": item.product.name,
+            "Price": str(item.product.price),
+        }
+        for item in cart_items
+    }
+
     global confirmed_relevant_data
     if request.method == "POST":
         try:
             data = json.loads(request.body)
             message = data.get("message")
-            topic = ai.identify_topic(message)
+            topic = ai.identify_topic(message, request.user)
             print("SELECTED TOPIC IS - " + topic)
             relevant_data = vector_search(topic)
             if len(relevant_data):
@@ -46,7 +57,7 @@ def home_view(request):
             response = ai.get_sales_chat_reply(
                 relevant_passage=str(confirmed_relevant_data), query=message
             )
-            return JsonResponse({"reply": str(response)})
+            return JsonResponse({"reply": str(response[0]), "images": response[1]})
         except Exception as e:
             print(e)
-    return render(request, "core/home.html")
+    return render(request, "core/home.html", {"cart": json.dumps(cart_dict)})
