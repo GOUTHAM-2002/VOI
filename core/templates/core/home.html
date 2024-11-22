@@ -134,6 +134,63 @@
     const chatDisplay = document.getElementById("chat-display");
     const imageModal = document.getElementById("imageModal");
     const modalImage = document.getElementById("modalImage");
+    const cartList = document.getElementById("cart-list");
+
+    // Function to populate cart
+    function populateCart(cartItems) {
+      // Clear existing cart items
+      cartList.innerHTML = "";
+
+      // Check if cart is empty
+      if (!cartItems || Object.keys(cartItems).length === 0) {
+        const emptyCartMessage = document.createElement("p");
+        emptyCartMessage.textContent = "Your cart is empty";
+        emptyCartMessage.classList.add("text-gray-500", "text-center");
+        cartList.appendChild(emptyCartMessage);
+        return;
+      }
+
+      // Populate cart with items
+      Object.entries(cartItems).forEach(([itemId, itemDetails]) => {
+        const cartItemElement = document.createElement("div");
+        cartItemElement.classList.add(
+          "bg-gray-700",
+          "p-3",
+          "rounded-lg",
+          "flex",
+          "justify-between",
+          "items-center",
+          "mb-2"
+        );
+
+        cartItemElement.innerHTML = `  
+                <div class="flex-1">  
+                    <p class="text-white font-semibold text-sm truncate" title="${itemDetails.Name}">  
+                        ${itemDetails.Name}  
+                    </p>  
+                    <p class="text-green-400 text-xs">  
+                        $${itemDetails.Price}  
+                    </p>  
+                </div>  
+                <button   
+                    class="remove-item text-red-400 hover:text-red-600 ml-2"  
+                    data-item-id="${itemId}"  
+                >  
+                    Remove  
+                </button>  
+            `;
+
+        // Add remove item functionality
+        const removeButton = cartItemElement.querySelector(".remove-item");
+        removeButton.addEventListener("click", () => {
+          // You might want to add an AJAX call to remove the item from the backend
+          cartItemElement.remove();
+        });
+
+        cartList.appendChild(cartItemElement);
+      });
+    }
+
     function appendMessage(sender, message, images = null) {
       const messageElement = document.createElement("div");
       messageElement.classList.add("message", `${sender}-message`, "mb-4");
@@ -158,7 +215,7 @@
           "justify-center",
           "space-x-4",
           "mt-4",
-          "flex-wrap" // Added to handle multiple images
+          "flex-wrap"
         );
 
         Object.entries(images).forEach(([itemKey, itemImages]) => {
@@ -190,14 +247,6 @@
       chatDisplay.scrollTop = chatDisplay.scrollHeight;
     }
 
-    // Close image modal
-    imageModal.addEventListener("click", function (e) {
-      if (e.target === imageModal) {
-        imageModal.classList.add("hidden");
-        imageModal.classList.remove("flex");
-      }
-    });
-
     // Send message function
     function sendMessage() {
       const message = userInput.value.trim();
@@ -219,6 +268,11 @@
         .then((data) => {
           // Display bot response with images
           appendMessage("bot", data.reply, data.images);
+
+          // Update cart if cart data is returned
+          if (data.cart) {
+            populateCart(data.cart);
+          }
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -232,11 +286,36 @@
       userInput.value = "";
     }
 
+    // Initial cart population
+    function initializeCart() {
+      // Send a request to get initial cart data
+      fetch("/home/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+        body: JSON.stringify({ message: "initialize_cart" }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.cart) {
+            populateCart(data.cart);
+          }
+        })
+        .catch((error) => {
+          console.error("Error initializing cart:", error);
+        });
+    }
+
     // Event listeners
     sendBtn.addEventListener("click", sendMessage);
     userInput.addEventListener("keypress", function (e) {
       if (e.key === "Enter") sendMessage();
     });
+
+    // Initialize cart on page load
+    initializeCart();
   });
 </script>
 {% endblock %}
