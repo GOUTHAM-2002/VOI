@@ -33,7 +33,7 @@ class GeminiClient:
     def __init__(self):
         if self._initialized:
             return
-        api_key = "AIzaSyCadPuPUQvtH-NsETbzmgooO9OT2NkAt1s"
+        api_key = "AIzaSyAD2BKjcWiJWP5ffxmgAaBfQW_jPYgRegU"
         if not api_key:
             raise ValueError(
                 "Gemini API key not found in settings or environment variables"

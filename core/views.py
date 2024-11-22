@@ -33,19 +33,20 @@ class CustomLoginView(LoginView):
 
 
 def home_view(request):
-    cart_items = Cart.objects.filter(user=request.user).select_related("product")
-
-    cart_dict = {
-        str(item.id): {
-            "Name": item.product.name,
-            "Price": str(item.product.price),
-        }
-        for item in cart_items
-    }
-
     global confirmed_relevant_data
     if request.method == "POST":
         try:
+            cart_items = Cart.objects.filter(user=request.user).select_related(
+                "product"
+            )
+            cart_dict = {
+                str(item.id): {
+                    "Name": item.product.name,
+                    "Price": str(item.product.price),
+                }
+                for item in cart_items
+            }
+            print(cart_dict)
             data = json.loads(request.body)
             message = data.get("message")
             topic = ai.identify_topic(message, request.user)
@@ -57,7 +58,9 @@ def home_view(request):
             response = ai.get_sales_chat_reply(
                 relevant_passage=str(confirmed_relevant_data), query=message
             )
-            return JsonResponse({"reply": str(response[0]), "images": response[1]})
+            return JsonResponse(
+                {"reply": str(response[0]), "images": response[1], "cart": cart_dict}
+            )
         except Exception as e:
             print(e)
-    return render(request, "core/home.html", {"cart": json.dumps(cart_dict)})
+    return render(request, "core/home.html")
