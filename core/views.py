@@ -4,7 +4,7 @@ from django.contrib.auth.views import LoginView
 from .forms import UserSignupForm, UserLoginForm
 from django.http import JsonResponse
 from .vector_db import vector_search
-from .models import Cart
+from .models import Cart, Product
 from .ai_model import GeminiClient
 import json
 
@@ -46,20 +46,32 @@ def home_view(request):
                 }
                 for item in cart_items
             }
-            print(cart_dict)
+            ai.user = request.user
             data = json.loads(request.body)
             message = data.get("message")
-            topic = ai.identify_topic(message, request.user)
-            print("SELECTED TOPIC IS - " + topic)
-            relevant_data = vector_search(topic)
+            # topic = ai.identify_topic(message, request.user)
+            # print("SELECTED TOPIC IS - " + topic)
+            relevant_data = vector_search(message)
             if len(relevant_data):
                 confirmed_relevant_data = relevant_data
-            print(confirmed_relevant_data)
+            images_ids = []
+            for dict in confirmed_relevant_data:
+                images_ids.append(dict["ID"])
+            images = Product.objects.filter(id__in=images_ids).values(
+                "image1", "image2", "image3"
+            )
+            images_dict = {}
+            for index, item in enumerate(images, 1):
+                images_dict[f"item_{index}"] = {
+                    "image1": item["image1"],
+                    "image2": item["image2"],
+                    "image3": item["image3"],
+                }
             response = ai.get_sales_chat_reply(
                 relevant_passage=str(confirmed_relevant_data), query=message
             )
             return JsonResponse(
-                {"reply": str(response[0]), "images": response[1], "cart": cart_dict}
+                {"reply": str(response[0]), "images": images_dict, "cart": cart_dict}
             )
         except Exception as e:
             print(e)
