@@ -61,8 +61,9 @@ class GeminiClient:
             self._chat = self.model.start_chat(enable_automatic_function_calling=True)
         return self._chat
 
-    def add_to_cart(self, product_id: int) -> str:
+    def add_to_cart(self, product_id: str) -> str:
         """Add item to cart using product_id"""
+        int(product_id)
         cart_item, created = Cart.objects.get_or_create(
             user=self.user, product_id=product_id
         )
@@ -85,7 +86,7 @@ class GeminiClient:
         print(str(cart_products))
         return str(cart_products)
 
-    def remove_from_cart(self, product_id: int) -> str:
+    def remove_from_cart(self, product_id: str) -> str:
         """Remove item from cart using product_id"""
         try:
             # Find and delete the cart item for the specific user and product
@@ -95,10 +96,10 @@ class GeminiClient:
         except Cart.DoesNotExist:
             return "Item not found in cart"
 
-    def discussed_products_list(self, product_id: int) -> str:
+    def discussed_products_list(self, product_id: str) -> str:
         """Create list of the ids of the products that are being discussed"""
         global to_fetch_images
-        to_fetch_images.append(product_id)
+        to_fetch_images.append(int(product_id))
         return "the product ids have been added to the list"
 
     def identify_topic(self, query: str, user: object) -> str:
