@@ -1,4 +1,5 @@
-{% extends "base_generic.html" %} {% block content %}
+{% extends "base_generic.html" %}
+{% block content %}
 <style>
   /* Voice Input Animation */
   .cylinder-container {
@@ -20,19 +21,23 @@
   .cylinder:nth-child(1) {
     animation-delay: 0s;
   }
+
   .cylinder:nth-child(2) {
     animation-delay: 0.3s;
   }
+
   .cylinder:nth-child(3) {
     animation-delay: 0.6s;
   }
 
   @keyframes wave {
+
     0%,
     100% {
       height: 40px;
       opacity: 0.6;
     }
+
     50% {
       height: 70px;
       opacity: 1;
@@ -76,10 +81,7 @@
       <h1 class="text-2xl font-bold mb-4">Voice AI</h1>
 
       <!-- Chat Display -->
-      <div
-        id="chat-display"
-        class="flex-1 overflow-y-auto border border-gray-700 rounded-lg p-4 bg-gray-700 space-y-4"
-      >
+      <div id="chat-display" class="flex-1 overflow-y-auto border border-gray-700 rounded-lg p-4 bg-gray-700 space-y-4">
         <div class="text-left">
           <p class="text-gray-300">AI: Hello! How can I help you?</p>
         </div>
@@ -87,18 +89,11 @@
 
       <!-- Input Section -->
       <div class="mt-4 flex">
-        <input
-          type="text"
-          id="user-input"
-          placeholder="Type your message..."
-          class="flex-1 border border-gray-700 bg-gray-700 text-gray-200 rounded-l-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          id="send-btn"
-          class="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700"
-        >
+        <!-- <input type="text" id="user-input" placeholder="Type your message..."
+          class="flex-1 border border-gray-700 bg-gray-700 text-gray-200 rounded-l-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button id="send-btn" class="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700">
           Send
-        </button>
+        </button> -->
       </div>
     </div>
 
@@ -113,27 +108,18 @@
 
   <!-- Image Modal -->
   <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden">
-    <div
-      id="modalImageContainer"
-      class="flex justify-center items-center w-full h-full"
-    >
-      <img
-        id="modalImage"
-        src=""
-        alt="Product Image"
-        class="max-w-full max-h-full object-contain"
-      />
+    <div id="modalImageContainer" class="flex justify-center items-center w-full h-full">
+      <img id="modalImage" src="" alt="Product Image" class="max-w-full max-h-full object-contain" />
     </div>
   </div>
 </body>
 
+
+
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    const userInput = document.getElementById("user-input");
-    const sendBtn = document.getElementById("send-btn");
-    const chatDisplay = document.getElementById("chat-display");
-    const imageModal = document.getElementById("imageModal");
-    const modalImage = document.getElementById("modalImage");
+
+
     const cartList = document.getElementById("cart-list");
 
     // Function to populate cart
@@ -164,21 +150,21 @@
         );
 
         cartItemElement.innerHTML = `
-                <div class="flex-1">
-                    <p class="text-white font-semibold text-sm truncate" title="${itemDetails.Name}">
-                        ${itemDetails.Name}
-                    </p>
-                    <p class="text-green-400 text-xs">
-                        $${itemDetails.Price}
-                    </p>
-                </div>
-                <button
-                    class="remove-item text-red-400 hover:text-red-600 ml-2"
-                    data-item-id="${itemId}"
-                >
-                    Remove
-                </button>
-            `;
+            <div class="flex-1">
+                <p class="text-white font-semibold text-sm truncate" title="${itemDetails.Name}">
+                    ${itemDetails.Name}
+                </p>
+                <p class="text-green-400 text-xs">
+                    $${itemDetails.Price}
+                </p>
+            </div>
+            <button
+                class="remove-item text-red-400 hover:text-red-600 ml-2"
+                data-item-id="${itemId}"
+            >
+                Remove
+            </button>
+        `;
 
         // Add remove item functionality
         const removeButton = cartItemElement.querySelector(".remove-item");
@@ -191,52 +177,23 @@
       });
     }
 
+
     function appendMessage(sender, message, images = null) {
-      // Ensure chat-display exists
-      const chatDisplay = document.getElementById("chat-display");
-      if (!chatDisplay) {
-        console.error("Chat display element not found");
-        return;
-      }
-
-      // Create message container
-      const messageElement = document.createElement("div");
-      messageElement.classList.add("message", `${sender}-message`, "mb-4");
-
-      // Create message content div
-      const messageContent = document.createElement("div");
-      messageContent.classList.add(
-        "bg-gray-600",
-        "p-4",
-        "rounded-lg",
-        "border",
-        "border-gray-500",
-        "text-white" // Ensure text is visible
-      );
-
-      // Clean and set message text
-      let cleanMessage = message;
-      if (typeof message === "object") {
-        cleanMessage = message.reply || JSON.stringify(message);
-      }
-
-      // Remove any surrounding quotes or formatting
-      cleanMessage = cleanMessage.replace(/^['"]|['"]$/g, "");
-
-      messageContent.textContent = cleanMessage;
-
-      // Handle images if present
+      // Only handle images, skip text messages
       if (images && Object.keys(images).length > 0) {
-        const imageContainer = document.createElement("div");
-        imageContainer.classList.add(
-          "flex",
-          "justify-center",
-          "space-x-4",
-          "mt-4",
-          "flex-wrap"
-        );
-
         try {
+          const chatDisplay = document.getElementById("chat-display");
+          if (!chatDisplay) return;
+
+          const imageContainer = document.createElement("div");
+          imageContainer.classList.add(
+            "flex",
+            "justify-center",
+            "space-x-4",
+            "mt-4",
+            "flex-wrap"
+          );
+
           Object.entries(images).forEach(([itemKey, itemImages]) => {
             Object.entries(itemImages).forEach(([imageKey, imageUrl]) => {
               const imgWrapper = document.createElement("div");
@@ -262,37 +219,17 @@
             });
           });
 
-          messageContent.appendChild(imageContainer);
+          chatDisplay.appendChild(imageContainer);
+          chatDisplay.scrollTop = chatDisplay.scrollHeight;
         } catch (error) {
           console.error("Error processing images:", error);
         }
       }
-
-      // Append message content to message element
-      messageElement.appendChild(messageContent);
-
-      // Append to chat display
-      chatDisplay.appendChild(messageElement);
-
-      // Scroll to bottom
-      chatDisplay.scrollTop = chatDisplay.scrollHeight;
-
-      // Debug logging
-      console.log(
-        `Message appended - Sender: ${sender}, Message: ${cleanMessage}`
-      );
     }
 
-    // Modify send message function to handle different response formats
-    function sendMessage() {
-      const userInput = document.getElementById("user-input");
-      const message = userInput.value.trim();
+    function sendMessage(message) {
       if (!message) return;
 
-      // Display user message
-      appendMessage("user", message);
-
-      // Send to server
       fetch("/home/", {
         method: "POST",
         headers: {
@@ -303,102 +240,146 @@
       })
         .then((response) => response.json())
         .then((data) => {
-          // Flexible response handling
           console.log("Server response:", data);
 
-          // Check for different possible response formats
-          const reply =
-            data.reply || data.message || data.text || "No response received";
-          const images = data.images || {};
+          const reply = data.reply || data.message || data.text || "No response received";
 
-          // Display bot response with images
-          appendMessage("bot", reply, images);
+          textToVoice(reply)
 
-          // Update cart if cart data is returned
+          // Only handle images, skip text reply
+          if (data.images) {
+            appendMessage("bot", "", data.images);
+          }
+
+          // Update cart if present
           if (data.cart) {
             populateCart(data.cart);
           }
         })
         .catch((error) => {
           console.error("Error:", error);
-          appendMessage(
-            "bot",
-            "Sorry, I encountered an error. Please try again."
+        });
+    }
+
+
+    function initializeSpeechRecognition() {
+      // Check for speech recognition support  
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+
+        // Configuration  
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.continuous = false; // Changed to false for better control  
+
+        // Speech Recognition Event Handlers  
+        recognition.onstart = () => {
+          console.log("Speech recognition started");
+        };
+
+        recognition.onresult = (event) => {
+          // Extract the most recent transcript  
+          const transcript = event.results[event.results.length - 1][0].transcript.trim();
+
+          console.log("Recognized speech:", transcript);
+
+          // Send recognized speech to server  
+          sendMessage(transcript);
+        };
+
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error:", event.error);
+        };
+
+        recognition.onend = () => {
+          console.log("Speech recognition ended");
+        };
+
+        // Return the recognition object for external control  
+        return recognition;
+      } else {
+        console.error("Speech Recognition is not supported in this browser.");
+        return null;
+      }
+    }
+
+    function textToVoice(text, lang = 'en-US') {
+      return new Promise((resolve, reject) => {
+        // Check for speech synthesis support  
+        if ('speechSynthesis' in window) {
+          // Cancel any ongoing speech  
+          window.speechSynthesis.cancel();
+
+          // Create a new utterance  
+          const utterance = new SpeechSynthesisUtterance(text);
+
+          // Configure utterance  
+          utterance.lang = lang;
+          utterance.rate = 1.0;
+          utterance.pitch = 1.0;
+
+          // Event handlers  
+          utterance.onstart = () => {
+            console.log("Text-to-speech started");
+          };
+
+          utterance.onend = () => {
+            console.log("Text-to-speech ended");
+            resolve();
+          };
+
+          utterance.onerror = (event) => {
+            console.error("Text-to-speech error:", event);
+            reject(event);
+          };
+
+          // Attempt to get a natural-sounding voice  
+          const voices = window.speechSynthesis.getVoices();
+          const naturalVoice = voices.find(voice =>
+            voice.lang === lang &&
+            (voice.name.includes('Natural') || voice.name.includes('Google'))
           );
-        });
 
-      // Clear input
-      userInput.value = "";
-    }
-    // Send message function
-    function sendMessage() {
-      const message = userInput.value.trim();
-      if (!message) return;
-
-      // Display user message
-      appendMessage("user", message);
-
-      // Send to server
-      fetch("/home/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": "{{ csrf_token }}",
-        },
-        body: JSON.stringify({ message: message }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          // Display bot response with images
-          appendMessage("bot", data.reply, data.images);
-
-          // Update cart if cart data is returned
-          if (data.cart) {
-            populateCart(data.cart);
+          if (naturalVoice) {
+            utterance.voice = naturalVoice;
           }
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-          appendMessage(
-            "bot",
-            "Sorry, I encountered an error. Please try again."
-          );
-        });
 
-      // Clear input
-      userInput.value = "";
+          // Speak the text  
+          window.speechSynthesis.speak(utterance);
+        } else {
+          console.error("Text-to-Speech is not supported in this browser.");
+          reject(new Error("Text-to-Speech not supported"));
+        }
+      });
     }
 
-    // Initial cart population
-    function initializeCart() {
-      // Send a request to get initial cart data
-      fetch("/home/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": "{{ csrf_token }}",
-        },
-        body: JSON.stringify({ message: "initialize_cart" }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.cart) {
-            populateCart(data.cart);
-          }
-        })
-        .catch((error) => {
-          console.error("Error initializing cart:", error);
-        });
+
+    function initializeVoiceInteraction() {
+      // Initialize Speech Recognition  
+      const recognition = initializeSpeechRecognition();
+
+      // Add a button or method to start voice recognition  
+      const startVoiceRecognitionBtn = document.createElement('button');
+      startVoiceRecognitionBtn.textContent = 'Start Voice Input';
+      startVoiceRecognitionBtn.classList.add(
+        'bg-green-500', 'text-white', 'p-2', 'rounded', 'ml-2'
+      );
+
+      // Append to input section  
+      const inputSection = document.querySelector('.mt-4.flex');
+      inputSection.appendChild(startVoiceRecognitionBtn);
+
+      // Add click event to start voice recognition  
+      startVoiceRecognitionBtn.addEventListener('click', () => {
+        if (recognition) {
+          recognition.start();
+        }
+      });
     }
 
-    // Event listeners
-    sendBtn.addEventListener("click", sendMessage);
-    userInput.addEventListener("keypress", function (e) {
-      if (e.key === "Enter") sendMessage();
-    });
-
-    // Initialize cart on page load
-    initializeCart();
+    // Initialize voice interaction  
+    initializeVoiceInteraction();
   });
 </script>
-{% endblock %}
+{% endblock %}
