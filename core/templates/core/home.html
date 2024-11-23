@@ -392,7 +392,10 @@
           appendMessage("bot", reply, images);
 
           // Text to Voice with Promise-based approach  
-          return textToVoice(reply);
+          textToVoice(reply);
+          if (data.cart) {
+            populateCart(data.cart);
+          }
         })
         .catch((error) => {
           console.error("Error:", error);
