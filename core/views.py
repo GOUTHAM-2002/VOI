@@ -49,8 +49,6 @@ def home_view(request):
             ai.user = request.user
             data = json.loads(request.body)
             message = data.get("message")
-            # topic = ai.identify_topic(message, request.user)
-            # print("SELECTED TOPIC IS - " + topic)
             relevant_data = vector_search(message)
             if len(relevant_data):
                 confirmed_relevant_data = relevant_data
@@ -71,7 +69,7 @@ def home_view(request):
                 relevant_passage=str(confirmed_relevant_data), query=message
             )
             return JsonResponse(
-                {"reply": str(response[0]), "images": images_dict, "cart": cart_dict}
+                {"reply": str(response[0]), "images": response[1], "cart": cart_dict}
             )
         except Exception as e:
             print(e)

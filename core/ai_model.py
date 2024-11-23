@@ -5,14 +5,10 @@ from django.conf import settings
 import logging
 from .models import Cart, Product
 from django.shortcuts import get_object_or_404
-import base64
-import time
-
-# Cart,created = Cart.objects.get_or_create(user = req.user , other params)
-# cart.products.add()
 
 logger = logging.getLogger(__name__)
-to_fetch_images = []
+
+discussed_product_list = []
 
 
 class GeminiClient:
@@ -43,7 +39,12 @@ class GeminiClient:
         try:
             self.model = genai.GenerativeModel(
                 model_name="gemini-1.5-flash",
-                tools=[self.add_to_cart, self.check_cart, self.remove_from_cart],
+                tools=[
+                    self.add_to_cart,
+                    self.check_cart,
+                    self.remove_from_cart,
+                    self.add_id_to_list,
+                ],
             )
             self._initialized = True
         except Exception as e:
@@ -83,59 +84,23 @@ class GeminiClient:
     def remove_from_cart(self, product_id: str) -> str:
         """Remove item from cart using product_id"""
         try:
-            # Find and delete the cart item for the specific user and product
             cart_item = Cart.objects.get(user=self.user, product_id=product_id)
             cart_item.delete()
             return "Item has been removed from the cart"
         except Cart.DoesNotExist:
             return "Item not found in cart"
 
-    def discussed_products_list(self, product_id: str) -> str:
-        """Create list of the ids of the products that are being discussed"""
-        global to_fetch_images
-        to_fetch_images.append(int(product_id))
-        return "the product ids have been added to the list"
-
-    # def identify_topic(self, query: str, user: object) -> str:
-    #     if self.user is None:
-    #         self.user = user
-    #     try:
-    #         prompt = (
-    #             "Do not use any tools in this step."
-    #             + "From the query I am providing to you I want you to identify the type/category of products that I require. "
-    #             + "If my prompt is like 'I want clothes for a sunny day' , I want you to return 'clothes for a sunny day'. "
-    #             + "If my prompt is like 'I want to buy jeans' , I want you to return 'jeans' as the topic. "
-    #             + "If my prompt is like 'I want to buy male t-shirts' , I want you to return 'male t-shirts' as the topic. "
-    #             + "Follow the above mentioned pattern and keep your answers as short as possible without losing any detail. "
-    #             + "Concise answers are preferred. "
-    #             + "The reply you give must STRICTLY depend on the query given as input or the chat history. "
-    #             + "If the query itself doesnt have any topic, then look at the chat history and return the latest topic, that is, the last output that the same prompt produced. "
-    #             + "Do not give a response looking at the examples I have shown. Those were only to explain the method of topic detection. "
-    #             f"QUERY - {query}"
-    #         )
-
-    #         response = self.chat.send_message(prompt)
-    #         if hasattr(response, "text"):
-    #             return response.text.strip()
-    #         return response._result.candidates[0].content.parts[0].text.strip()
-
-    #     except Exception as e:
-    #         logger.error(f"Error identifying topic: {str(e)}")
-    #         return None
+    def add_id_to_list(self, product_id: str) -> str:
+        """Add id to list....which will be used to fetch images"""
+        global discussed_product_list
+        discussed_product_list.append(int(product_id))
+        return "id has been added to the list"
 
     def get_sales_chat_reply(self, query: str, relevant_passage: str) -> str:
-        global to_fetch_images
-        to_fetch_images.clear()
+        discussed_product_list.clear()
         cart_hot_words = ["cart", "wishlist", "bag"]
+        image_hot_words = ["images", "image", "pictures", "pics"]
         cart_contents = str(self.check_cart())
-        print(
-            "HERERERERERER-------------------------------------------------------------------"
-        )
-        print(str(cart_contents))
-        print(
-            "HERERERERERER-------------------------------------------------------------------"
-        )
-        print(cart_contents)
         if any(word in query.lower() for word in cart_hot_words):
             prompt = (
                 "You need to perform one of the operations on the cart......either adding......removing from the cart. "
@@ -150,7 +115,17 @@ class GeminiClient:
                 + f"PASSAGE : '{relevant_passage}'\n\n"
                 + f"CART CONTENTS : {cart_contents}\n\n"
                 + "Above mentioned are the contents of the cart....answer any query regarding the cart contents using the above details. "
+                + "At the end if the user wants to checkout his cart calculate the total price and confirm all the names of the products in the cart ."
+                + "Ask for his name , phone number and shipping address. Once he provides you with these three details confirm him the details and tell him that all itsems will be shipped to him within 7 days and then thank him for shipping with us"
             )
+        elif any(word in query.lower() for word in image_hot_words):
+            prompt = (
+                "The user is requesting to see an image. "
+                + "Whichever product or products the user wants to see the image of....make sure to call the add_id_to_list function and pass the relevant product id. "
+                + f"QUERY : {query}"
+                + f"\n\nPASSAGE : {relevant_passage}\n\n"
+            )
+
         else:
             prompt = (
                 "You are a human salesman who needs to carry out the following task. "
@@ -164,16 +139,9 @@ class GeminiClient:
                 + "The data in the passage will almost always be relevant to the query, however if the passage is empty or the data is not relevant then just reply the way a human salesman would. "
                 + "Reply in moderate to extensive detail, in about 50-75 words. "
                 + "Use only the first 2 products from the passage for all purposes unless prompted for more details. "
-                #     + "Whichever product is being mentioned in your reply....make sure to compulsarily call the discussed_products_list function which has been provided as a tool and pass the respective product id. "
-                #     + "Do this for the first 2 products present in the relevant passage. "
-                #     + "Don't expect a reply from discussed_product_id at all...It is not meant to deliver any data...your sources of data will only be the passage. "
-                #     + "I want the reply to ALWAYS contain data about the product being discussed. Make sure this happens without fail. "
             )
         response = self.chat.send_message(prompt)
-        reply = response._result.candidates[0].content.parts[0].text.strip()
-        # print(self.cart)
-        # print(reply)
-        images = Product.objects.filter(id__in=to_fetch_images).values(
+        images = Product.objects.filter(id__in=discussed_product_list).values(
             "image1", "image2", "image3"
         )
         images_dict = {}
@@ -183,4 +151,5 @@ class GeminiClient:
                 "image2": item["image2"],
                 "image3": item["image3"],
             }
+        reply = response._result.candidates[0].content.parts[0].text.strip()
         return [reply, images_dict]
