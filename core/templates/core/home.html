@@ -179,51 +179,21 @@
 
 
     function appendMessage(sender, message, images = null) {
-      // Ensure chat-display exists
-      const chatDisplay = document.getElementById("chat-display");
-      if (!chatDisplay) {
-        console.error("Chat display element not found");
-        return;
-      }
-
-      // Create message container
-      const messageElement = document.createElement("div");
-      messageElement.classList.add("message", `${sender}-message`, "mb-4");
-
-      // Create message content div
-      const messageContent = document.createElement("div");
-      messageContent.classList.add(
-        "bg-gray-600",
-        "p-4",
-        "rounded-lg",
-        "border",
-        "border-gray-500",
-        "text-white" // Ensure text is visible
-      );
-
-      // Clean and set message text
-      let cleanMessage = message;
-      if (typeof message === "object") {
-        cleanMessage = message.reply || JSON.stringify(message);
-      }
-
-      // Remove any surrounding quotes or formatting
-      cleanMessage = cleanMessage.replace(/^['"]|['"]$/g, "");
-
-      messageContent.textContent = cleanMessage;
-
-      // Handle images if present
+      // Only handle images, skip text messages
       if (images && Object.keys(images).length > 0) {
-        const imageContainer = document.createElement("div");
-        imageContainer.classList.add(
-          "flex",
-          "justify-center",
-          "space-x-4",
-          "mt-4",
-          "flex-wrap"
-        );
-
         try {
+          const chatDisplay = document.getElementById("chat-display");
+          if (!chatDisplay) return;
+
+          const imageContainer = document.createElement("div");
+          imageContainer.classList.add(
+            "flex",
+            "justify-center",
+            "space-x-4",
+            "mt-4",
+            "flex-wrap"
+          );
+
           Object.entries(images).forEach(([itemKey, itemImages]) => {
             Object.entries(itemImages).forEach(([imageKey, imageUrl]) => {
               const imgWrapper = document.createElement("div");
@@ -249,27 +219,47 @@
             });
           });
 
-          messageContent.appendChild(imageContainer);
+          chatDisplay.appendChild(imageContainer);
+          chatDisplay.scrollTop = chatDisplay.scrollHeight;
         } catch (error) {
           console.error("Error processing images:", error);
         }
       }
-
-      // Append message content to message element
-      messageElement.appendChild(messageContent);
-
-      // Append to chat display
-      chatDisplay.appendChild(messageElement);
-
-      // Scroll to bottom
-      chatDisplay.scrollTop = chatDisplay.scrollHeight;
-
-      // Debug logging
-      console.log(
-        `Message appended - Sender: ${sender}, Message: ${cleanMessage}`
-      );
     }
 
+    function sendMessage(message) {
+      if (!message) return;
+
+      fetch("/home/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+        body: JSON.stringify({ message: message }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          console.log("Server response:", data);
+
+          const reply = data.reply || data.message || data.text || "No response received";
+
+          textToVoice(reply)
+
+          // Only handle images, skip text reply
+          if (data.images) {
+            appendMessage("bot", "", data.images);
+          }
+
+          // Update cart if present
+          if (data.cart) {
+            populateCart(data.cart);
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+    }
 
 
     function initializeSpeechRecognition() {
@@ -364,47 +354,6 @@
       });
     }
 
-    function sendMessage(message) {
-      if (!message) return;
-
-      // Display user message  
-      appendMessage("user", message);
-
-      // Send to server  
-      fetch("/home/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": "{{ csrf_token }}",
-        },
-        body: JSON.stringify({ message: message }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          // Flexible response handling  
-          console.log("Server response:", data);
-
-          // Check for different possible response formats  
-          const reply = data.reply || data.message || data.text || "No response received";
-          const images = data.images || {};
-
-          // Display bot response with images  
-          appendMessage("bot", reply, images);
-
-          // Text to Voice with Promise-based approach  
-          textToVoice(reply);
-          if (data.cart) {
-            populateCart(data.cart);
-          }
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-          appendMessage(
-            "bot",
-            "Sorry, I encountered an error. Please try again."
-          );
-        });
-    }
 
     function initializeVoiceInteraction() {
       // Initialize Speech Recognition  
