@@ -11,7 +11,12 @@ import json
 ai = GeminiClient()
 
 confirmed_relevant_data = []
+greet=True
+greeting ="""
+Good day! Thank you for choosing VOI. I’m your personal assistant, here to help you shop for any clothing or apparel you desire—all without lifting a finger!
 
+Do you have any queries about your previous order? If not, let’s dive right into shopping for new items!
+"""
 
 # Signup View
 def signup_view(request):
@@ -33,6 +38,8 @@ class CustomLoginView(LoginView):
 
 
 def home_view(request):
+    global greeting
+    global greet
     global confirmed_relevant_data
     if request.method == "POST":
         try:
@@ -67,6 +74,11 @@ def home_view(request):
                 }
             response = ai.get_sales_chat_reply(
                 relevant_passage=str(confirmed_relevant_data), query=message
+            )
+            if greet:
+                greet=False
+                return JsonResponse(
+                {"reply": greeting, "images": response[1], "cart": cart_dict}
             )
             return JsonResponse(
                 {"reply": str(response[0]), "images": response[1], "cart": cart_dict}

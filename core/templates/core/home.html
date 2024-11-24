@@ -1,12 +1,51 @@
 {% extends "base_generic.html" %} {% block content %}
 <style>
-  /* Voice Input Animation */
-  .cylinder-container {
+  @keyframes pulse {
+    0%, 100% {
+      transform: translate(-50%, -50%) scale(1);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.2);
+      box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .voice-input-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #4caf50; /* Cool green tone */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+    position: fixed;
+    top: 73%;
+    left: 39%;
+    transform: translate(-50%, -50%);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    height: 80px;
+    cursor: pointer;
+    animation: pulse 1s infinite;
+  }
+
+  .voice-input-btn:hover {
+    background-color: #45a049; /* Slightly darker green on hover */
+  }
+
+  .voice-input-btn:active {
+    animation: none; /* Stop animation when pressed */
+    background-color: #3d8b42; /* Even darker green when active */
+  }
+
+  .voice-input-btn::before {
+    content: '';
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    position: absolute;
+    background-color: rgba(76, 175, 80, 0.2); /* Lighter green for glow */
+    animation: pulse 2s infinite ease-in-out;
   }
 
   .cylinder {
@@ -84,7 +123,7 @@
         class="flex-1 overflow-y-auto border border-gray-700 rounded-lg p-4 bg-gray-700 space-y-4"
       >
         <div class="text-left">
-          <p class="text-gray-300">AI: Hello! How can I help you?</p>
+          <p class="text-gray-300"></p>
         </div>
       </div>
 
@@ -181,6 +220,7 @@
         cartList.appendChild(cartItemElement);
       });
     }
+
 
     function appendMessage(sender, message, images = null) {
       const chatDisplay = document.getElementById("chat-display");
@@ -379,83 +419,94 @@
       }
     }
 
-    function textToVoice(text, lang = "en-US") {
-      return new Promise((resolve, reject) => {
-        // Check for speech synthesis support
-        if ("speechSynthesis" in window) {
-          // Cancel any ongoing speech
-          window.speechSynthesis.cancel();
+function textToVoice(text, lang = "en-US") {
+  return new Promise((resolve, reject) => {
+    // Check for speech synthesis support
+    if ("speechSynthesis" in window) {
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
 
-          // Create a new utterance
-          const utterance = new SpeechSynthesisUtterance(text);
+      // Create a new utterance
+      const utterance = new SpeechSynthesisUtterance(text);
 
-          // Configure utterance
-          utterance.lang = lang;
-          utterance.rate = 1.0;
-          utterance.pitch = 1.0;
+      // Configure utterance
+      utterance.lang = lang;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
 
-          // Event handlers
-          utterance.onstart = () => {
-            console.log("Text-to-speech started");
-          };
+      // Explicitly set a specific female voice
+      function setStandardVoice() {
+        const voices = window.speechSynthesis.getVoices();
 
-          utterance.onend = () => {
-            console.log("Text-to-speech ended");
-            resolve();
-          };
+        // Explicitly select a specific female voice
+        // You can modify these names based on the voices available in your browser
+        const standardVoice = voices.find(voice =>
+          voice.lang === lang && (
+            voice.name === "Google US English" ||
+            voice.name === "Karen" ||
+            voice.name.toLowerCase().includes("female")
+          )
+        );
 
-          utterance.onerror = (event) => {
-            console.error("Text-to-speech error:", event);
-            reject(event);
-          };
-
-          // Attempt to get a natural-sounding voice
-          const voices = window.speechSynthesis.getVoices();
-          const naturalVoice = voices.find(
-            (voice) =>
-              voice.lang === lang &&
-              (voice.name.includes("Natural") || voice.name.includes("Google"))
-          );
-
-          if (naturalVoice) {
-            utterance.voice = naturalVoice;
-          }
-
-          // Speak the text
-          window.speechSynthesis.speak(utterance);
+        if (standardVoice) {
+          utterance.voice = standardVoice;
         } else {
-          console.error("Text-to-Speech is not supported in this browser.");
-          reject(new Error("Text-to-Speech not supported"));
+          // Fallback if specific voice not found
+          console.warn("Specific female voice not found. Using default.");
         }
-      });
+
+        // Speak the text
+        window.speechSynthesis.speak(utterance);
+      }
+
+      // Handle voice loading
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = setStandardVoice;
+      } else {
+        setStandardVoice();
+      }
+
+      // Event handlers
+      utterance.onstart = () => {
+        console.log("Text-to-speech started");
+      };
+
+      utterance.onend = () => {
+        console.log("Text-to-speech ended");
+        resolve();
+      };
+
+      utterance.onerror = (event) => {
+        console.error("Text-to-speech error:", event);
+        reject(event);
+      };
+
+    } else {
+      console.error("Text-to-Speech is not supported in this browser.");
+      reject(new Error("Text-to-Speech not supported"));
     }
+  });
+}
 
-    function initializeVoiceInteraction() {
-      // Initialize Speech Recognition
-      const recognition = initializeSpeechRecognition();
+function initializeVoiceInteraction() {
+  // Initialize Speech Recognition
+  const recognition = initializeSpeechRecognition();
 
-      // Add a button or method to start voice recognition
-      const startVoiceRecognitionBtn = document.createElement("button");
-      startVoiceRecognitionBtn.textContent = "Start Voice Input";
-      startVoiceRecognitionBtn.classList.add(
-        "bg-green-500",
-        "text-white",
-        "p-2",
-        "rounded",
-        "ml-2"
-      );
+  // Create the voice input button
+  const startVoiceRecognitionBtn = document.createElement("button");
+  startVoiceRecognitionBtn.textContent = ""; // Empty text for a clean circle
+  startVoiceRecognitionBtn.classList.add("voice-input-btn");
 
-      // Append to input section
-      const inputSection = document.querySelector(".mt-4.flex");
-      inputSection.appendChild(startVoiceRecognitionBtn);
-
-      // Add click event to start voice recognition
-      startVoiceRecognitionBtn.addEventListener("click", () => {
-        if (recognition) {
-          recognition.start();
-        }
-      });
+  // Add click event to start voice recognition
+  startVoiceRecognitionBtn.addEventListener("click", () => {
+    if (recognition) {
+      recognition.start();
     }
+  });
+
+  // Append to body
+  document.body.appendChild(startVoiceRecognitionBtn);
+}
 
     // Initialize voice interaction
     initializeVoiceInteraction();
